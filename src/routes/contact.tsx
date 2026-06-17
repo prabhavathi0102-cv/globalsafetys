@@ -19,8 +19,8 @@ export const Route = createFileRoute("/contact")({
 const PRODUCT_INTEREST = ["Fire Alarm", "PA System", "Fire Extinguisher", "Hydrant System", "Valves", "Cables", "Fire Door", "AMC / Service"];
 
 function ContactPage() {
-  const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<{ referenceNumber: string; submittedAt: string; customerName: string; email: string } | null>(null);
   const submitFn = useServerFn(submitEnquiry);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -54,11 +54,10 @@ function ContactPage() {
 
     setSubmitting(true);
     try {
-      await submitFn({ data });
-      setSent(true);
+      const res = await submitFn({ data });
       form.reset();
+      setResult({ referenceNumber: res.referenceNumber, submittedAt: res.submittedAt, customerName: data.customerName, email: data.email });
       toast.success("Enquiry submitted successfully!");
-      setTimeout(() => setSent(false), 6000);
     } catch (err) {
       console.error(err);
       toast.error("Could not submit enquiry. Please try again or call us.");

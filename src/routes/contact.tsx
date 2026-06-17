@@ -19,8 +19,8 @@ export const Route = createFileRoute("/contact")({
 const PRODUCT_INTEREST = ["Fire Alarm", "PA System", "Fire Extinguisher", "Hydrant System", "Valves", "Cables", "Fire Door", "AMC / Service"];
 
 function ContactPage() {
-  const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<{ referenceNumber: string; submittedAt: string; customerName: string; email: string } | null>(null);
   const submitFn = useServerFn(submitEnquiry);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -54,11 +54,10 @@ function ContactPage() {
 
     setSubmitting(true);
     try {
-      await submitFn({ data });
-      setSent(true);
+      const res = await submitFn({ data });
       form.reset();
+      setResult({ referenceNumber: res.referenceNumber, submittedAt: res.submittedAt, customerName: data.customerName, email: data.email });
       toast.success("Enquiry submitted successfully!");
-      setTimeout(() => setSent(false), 6000);
     } catch (err) {
       console.error(err);
       toast.error("Could not submit enquiry. Please try again or call us.");
@@ -94,40 +93,79 @@ function ContactPage() {
 
       <section className="pb-20">
         <div className="container mx-auto px-4 grid lg:grid-cols-[1fr_1fr] gap-8 items-start">
-          <form onSubmit={submit} className="rounded-2xl bg-card border border-border p-6 md:p-8 shadow-card">
-            <h3 className="font-display text-2xl font-bold text-primary">Send an enquiry</h3>
-            <p className="text-sm text-muted-foreground mt-1">We typically respond within one business day.</p>
-            <div className="mt-6 grid sm:grid-cols-2 gap-4">
-              <Input label="Customer Name" name="customerName" required />
-              <Input label="Company Name" name="companyName" />
-              <Input label="Mobile Number" name="mobile" type="tel" required />
-              <Input label="Email ID" name="email" type="email" required />
-              <Input label="City" name="city" />
-              <label className="sm:col-span-2 block">
-                <span className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Product Interested</span>
-                <select name="productInterested" className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                  <option value="">Select a product / service</option>
-                  {PRODUCT_INTEREST.map((p) => <option key={p}>{p}</option>)}
-                </select>
-              </label>
-              <label className="sm:col-span-2 block">
-                <span className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Message / Enquiry</span>
-                <textarea name="message" rows={5} maxLength={2000} placeholder="Tell us about your site, area & requirement..." className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-              </label>
-            </div>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-md bg-fire-gradient py-3.5 font-semibold text-accent-foreground shadow-fire hover:scale-[1.01] transition-smooth disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
-            >
-              <Send className="h-4 w-4" /> {submitting ? "Submitting..." : "Submit Enquiry"}
-            </button>
-            {sent && (
-              <div className="mt-4 flex items-center gap-2 rounded-lg bg-accent/10 text-accent px-3 py-2.5 text-sm font-semibold">
-                <CheckCircle2 className="h-4 w-4" /> Thanks — we'll get back to you shortly.
+          {result ? (
+            <div className="rounded-2xl bg-card border border-border p-6 md:p-8 shadow-card">
+              <div className="flex items-start gap-4">
+                <div className="h-14 w-14 rounded-full bg-accent/15 text-accent flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 className="h-7 w-7" />
+                </div>
+                <div className="min-w-0">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-accent/10 text-accent px-2.5 py-1 text-xs font-semibold uppercase tracking-wider">
+                    Submitted
+                  </div>
+                  <h3 className="mt-2 font-display text-2xl font-bold text-primary">Thank you, {result.customerName}!</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Your enquiry has been received. A confirmation will be sent to <strong className="text-foreground">{result.email}</strong>. Our team typically responds within one business day.
+                  </p>
+                </div>
               </div>
-            )}
-          </form>
+
+              <div className="mt-6 grid sm:grid-cols-2 gap-4">
+                <div className="rounded-xl border border-border bg-secondary/40 p-4">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reference Number</div>
+                  <div className="mt-1 font-mono text-lg font-bold text-primary break-all">{result.referenceNumber}</div>
+                </div>
+                <div className="rounded-xl border border-border bg-secondary/40 p-4">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Submitted On</div>
+                  <div className="mt-1 text-sm font-semibold text-primary">
+                    {new Date(result.submittedAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+                  </div>
+                </div>
+              </div>
+
+              <p className="mt-6 text-xs text-muted-foreground">
+                Please keep your reference number for follow-up. For urgent requests call <a href="tel:+919841781060" className="font-semibold text-accent hover:underline">+91 98417 81060</a>.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setResult(null)}
+                className="mt-6 inline-flex items-center justify-center rounded-md border border-border bg-background px-5 py-2.5 text-sm font-semibold hover:border-primary hover:text-primary transition-smooth"
+              >
+                Submit another enquiry
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={submit} className="rounded-2xl bg-card border border-border p-6 md:p-8 shadow-card">
+              <h3 className="font-display text-2xl font-bold text-primary">Send an enquiry</h3>
+              <p className="text-sm text-muted-foreground mt-1">We typically respond within one business day.</p>
+              <div className="mt-6 grid sm:grid-cols-2 gap-4">
+                <Input label="Customer Name" name="customerName" required />
+                <Input label="Company Name" name="companyName" />
+                <Input label="Mobile Number" name="mobile" type="tel" required />
+                <Input label="Email ID" name="email" type="email" required />
+                <Input label="City" name="city" />
+                <label className="sm:col-span-2 block">
+                  <span className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Product Interested</span>
+                  <select name="productInterested" className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                    <option value="">Select a product / service</option>
+                    {PRODUCT_INTEREST.map((p) => <option key={p}>{p}</option>)}
+                  </select>
+                </label>
+                <label className="sm:col-span-2 block">
+                  <span className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Message / Enquiry</span>
+                  <textarea name="message" rows={5} maxLength={2000} placeholder="Tell us about your site, area & requirement..." className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                </label>
+              </div>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-md bg-fire-gradient py-3.5 font-semibold text-accent-foreground shadow-fire hover:scale-[1.01] transition-smooth disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                <Send className="h-4 w-4" /> {submitting ? "Submitting..." : "Submit Enquiry"}
+              </button>
+            </form>
+          )}
 
           <div className="space-y-6">
             {[

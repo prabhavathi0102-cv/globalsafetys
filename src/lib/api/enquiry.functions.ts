@@ -37,15 +37,26 @@ export const submitEnquiry = createServerFn({ method: "POST" })
       companyName: data.companyName,
     };
 
+    // Send as application/x-www-form-urlencoded so Apps Script handlers that
+    // read e.parameter.<field> work. Apps Script can also read the raw body
+    // via e.postData.contents if it prefers JSON-style parsing.
+    const form = new URLSearchParams();
+    for (const [k, v] of Object.entries(payload)) {
+      form.append(k, String(v ?? ""));
+    }
+
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: form.toString(),
       redirect: "follow",
     });
 
+    const responseText = await res.text().catch(() => "");
     if (!res.ok) {
+      console.error("Sheet webhook non-2xx", res.status, responseText);
       throw new Error(`Sheet save failed (${res.status})`);
     }
+    console.log("Sheet webhook response:", res.status, responseText.slice(0, 500));
     return { ok: true as const, referenceNumber, submittedAt: now.toISOString() };
   });

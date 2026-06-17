@@ -17,8 +17,16 @@ export const submitEnquiry = createServerFn({ method: "POST" })
     const url = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
     if (!url) throw new Error("Webhook not configured");
 
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const datePart = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}`;
+    const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+    const referenceNumber = `GSE-${datePart}-${rand}`;
+
     const payload = {
-      timestamp: new Date().toISOString(),
+      timestamp: now.toISOString(),
+      referenceNumber,
+      reference_number: referenceNumber,
       ...data,
       // Aliases so Apps Scripts using either naming convention work
       name: data.customerName,
@@ -39,5 +47,5 @@ export const submitEnquiry = createServerFn({ method: "POST" })
     if (!res.ok) {
       throw new Error(`Sheet save failed (${res.status})`);
     }
-    return { ok: true };
+    return { ok: true as const, referenceNumber, submittedAt: now.toISOString() };
   });

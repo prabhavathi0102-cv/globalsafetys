@@ -126,7 +126,11 @@ function PaymentPage() {
             )}
 
             <button type="submit" className="mt-8 w-full inline-flex items-center justify-center gap-2 rounded-md bg-fire-gradient py-3.5 font-semibold text-accent-foreground shadow-fire hover:scale-[1.01] transition-smooth">
-              <Lock className="h-4 w-4" /> Pay Now
+              {method === "upi" ? (
+                <><Smartphone className="h-4 w-4" /> Open UPI App</>
+              ) : (
+                <><Lock className="h-4 w-4" /> Pay Now</>
+              )}
             </button>
           </form>
 

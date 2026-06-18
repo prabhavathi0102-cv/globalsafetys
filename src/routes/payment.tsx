@@ -103,15 +103,24 @@ function PaymentPage() {
             </div>
 
             {method === "upi" && (
-              <div className="mt-6 rounded-xl bg-secondary/60 p-5 flex items-center gap-5">
-                <div className="h-28 w-28 rounded-lg bg-white p-2 grid grid-cols-8 gap-px shadow">
+              <div className="mt-6 rounded-xl bg-secondary/60 p-5 flex flex-col sm:flex-row items-center gap-5">
+                <div className="h-28 w-28 rounded-lg bg-white p-2 grid grid-cols-8 gap-px shadow flex-shrink-0">
                   {Array.from({ length: 64 }).map((_, i) => (
                     <div key={i} className={(i * 7) % 3 === 0 ? "bg-primary-deep" : "bg-transparent"} />
                   ))}
                 </div>
-                <div className="text-sm">
+                <div className="text-sm flex-1">
                   <div className="font-semibold text-primary">Scan UPI QR</div>
-                  <div className="text-muted-foreground">Or use UPI ID: <code className="bg-card px-1.5 py-0.5 rounded">globalsafety@upi</code></div>
+                  <div className="text-muted-foreground mt-1">UPI ID: <code className="bg-card px-1.5 py-0.5 rounded font-mono">{upiId}</code></div>
+                  <a
+                    href={upiLink}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-deep transition-smooth"
+                  >
+                    <Smartphone className="h-4 w-4" />
+                    Pay via UPI App
+                    <ExternalLink className="h-3.5 w-3.5 opacity-70" />
+                  </a>
+                  <p className="mt-2 text-xs text-muted-foreground">Opens your phone's UPI app (GPay, PhonePe, Paytm, etc.)</p>
                 </div>
               </div>
             )}

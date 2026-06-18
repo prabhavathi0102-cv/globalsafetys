@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { CreditCard, Smartphone, Building2, Lock, CheckCircle2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { CreditCard, Smartphone, Building2, Lock, CheckCircle2, ExternalLink } from "lucide-react";
 import { PageHero } from "@/components/site/Section";
 
 export const Route = createFileRoute("/payment")({

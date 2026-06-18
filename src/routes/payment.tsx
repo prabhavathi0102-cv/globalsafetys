@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { CreditCard, Smartphone, Building2, Lock, CheckCircle2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { CreditCard, Smartphone, Building2, Lock, CheckCircle2, ExternalLink } from "lucide-react";
 import { PageHero } from "@/components/site/Section";
 
 export const Route = createFileRoute("/payment")({
@@ -26,8 +26,24 @@ function PaymentPage() {
   const [amount, setAmount] = useState("");
   const [done, setDone] = useState(false);
 
+  const upiId = "9841781060@upi";
+  const upiLink = useMemo(() => {
+    const params = new URLSearchParams({
+      pa: upiId,
+      pn: "Global Safety Enterprises",
+      cu: "INR",
+    });
+    if (amount) params.set("am", amount);
+    if (invoice) params.set("tn", `Invoice ${invoice}`);
+    return `upi://pay?${params.toString()}`;
+  }, [amount, invoice]);
+
   function pay(e: React.FormEvent) {
     e.preventDefault();
+    if (method === "upi") {
+      window.location.href = upiLink;
+      return;
+    }
     setDone(true);
   }
 
@@ -87,21 +103,34 @@ function PaymentPage() {
             </div>
 
             {method === "upi" && (
-              <div className="mt-6 rounded-xl bg-secondary/60 p-5 flex items-center gap-5">
-                <div className="h-28 w-28 rounded-lg bg-white p-2 grid grid-cols-8 gap-px shadow">
+              <div className="mt-6 rounded-xl bg-secondary/60 p-5 flex flex-col sm:flex-row items-center gap-5">
+                <div className="h-28 w-28 rounded-lg bg-white p-2 grid grid-cols-8 gap-px shadow flex-shrink-0">
                   {Array.from({ length: 64 }).map((_, i) => (
                     <div key={i} className={(i * 7) % 3 === 0 ? "bg-primary-deep" : "bg-transparent"} />
                   ))}
                 </div>
-                <div className="text-sm">
+                <div className="text-sm flex-1">
                   <div className="font-semibold text-primary">Scan UPI QR</div>
-                  <div className="text-muted-foreground">Or use UPI ID: <code className="bg-card px-1.5 py-0.5 rounded">globalsafety@upi</code></div>
+                  <div className="text-muted-foreground mt-1">UPI ID: <code className="bg-card px-1.5 py-0.5 rounded font-mono">{upiId}</code></div>
+                  <a
+                    href={upiLink}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-deep transition-smooth"
+                  >
+                    <Smartphone className="h-4 w-4" />
+                    Pay via UPI App
+                    <ExternalLink className="h-3.5 w-3.5 opacity-70" />
+                  </a>
+                  <p className="mt-2 text-xs text-muted-foreground">Opens your phone's UPI app (GPay, PhonePe, Paytm, etc.)</p>
                 </div>
               </div>
             )}
 
             <button type="submit" className="mt-8 w-full inline-flex items-center justify-center gap-2 rounded-md bg-fire-gradient py-3.5 font-semibold text-accent-foreground shadow-fire hover:scale-[1.01] transition-smooth">
-              <Lock className="h-4 w-4" /> Pay Now
+              {method === "upi" ? (
+                <><Smartphone className="h-4 w-4" /> Open UPI App</>
+              ) : (
+                <><Lock className="h-4 w-4" /> Pay Now</>
+              )}
             </button>
           </form>
 

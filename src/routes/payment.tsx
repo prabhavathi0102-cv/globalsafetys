@@ -26,8 +26,24 @@ function PaymentPage() {
   const [amount, setAmount] = useState("");
   const [done, setDone] = useState(false);
 
+  const upiId = "9841781060@upi";
+  const upiLink = useMemo(() => {
+    const params = new URLSearchParams({
+      pa: upiId,
+      pn: "Global Safety Enterprises",
+      cu: "INR",
+    });
+    if (amount) params.set("am", amount);
+    if (invoice) params.set("tn", `Invoice ${invoice}`);
+    return `upi://pay?${params.toString()}`;
+  }, [amount, invoice]);
+
   function pay(e: React.FormEvent) {
     e.preventDefault();
+    if (method === "upi") {
+      window.location.href = upiLink;
+      return;
+    }
     setDone(true);
   }
 

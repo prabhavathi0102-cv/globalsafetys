@@ -1,56 +1,182 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
-import { CreditCard, Smartphone, Building2, Lock, CheckCircle2, ExternalLink } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { CreditCard, Lock, CheckCircle2, XCircle, Loader2, Smartphone, ExternalLink } from "lucide-react";
 import { PageHero } from "@/components/site/Section";
+import {
+  createRazorpayOrder,
+  verifyRazorpayPayment,
+  recordRazorpayFailure,
+} from "@/lib/payments/razorpay.functions";
 
 export const Route = createFileRoute("/payment")({
   head: () => ({
     meta: [
       { title: "Make a Payment — Global Safety Enterprises" },
-      { name: "description", content: "Secure online payment via UPI, card or net banking for invoices issued by Global Safety Enterprises (P) Ltd." },
+      {
+        name: "description",
+        content:
+          "Pay invoices securely online with Razorpay — UPI, credit/debit cards, net banking, and wallets accepted.",
+      },
     ],
   }),
   component: PaymentPage,
 });
 
-const METHODS = [
-  { id: "upi", label: "UPI / QR", icon: Smartphone },
-  { id: "card", label: "Credit / Debit Card", icon: CreditCard },
-  { id: "nb", label: "Net Banking", icon: Building2 },
+const PRODUCTS = [
+  "Fire Alarm System",
+  "Public Address System",
+  "Fire Extinguishers",
+  "Hydrant System",
+  "Valves & Couplings",
+  "Fire-Rated Cables",
+  "Fire Doors",
+  "Annual Maintenance Contract",
+  "Installation & Commissioning",
+  "Other / Custom Invoice",
 ];
 
+type Status = "form" | "processing" | "success" | "failed";
+
+declare global {
+  interface Window {
+    Razorpay?: any;
+  }
+}
+
+function loadRazorpay(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") return resolve(false);
+    if (window.Razorpay) return resolve(true);
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
+
 function PaymentPage() {
-  const [method, setMethod] = useState("upi");
-  const [invoice, setInvoice] = useState("");
-  const [name, setName] = useState("");
+  const createOrder = useServerFn(createRazorpayOrder);
+  const verifyPayment = useServerFn(verifyRazorpayPayment);
+  const recordFailure = useServerFn(recordRazorpayFailure);
+
+  const [status, setStatus] = useState<Status>("form");
+  const [product, setProduct] = useState(PRODUCTS[0]);
   const [amount, setAmount] = useState("");
-  const [done, setDone] = useState(false);
+  const [name, setName] = useState("");
+  const [company, setCompany] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{ invoiceNo: string; paymentId: string } | null>(null);
+  const [failReason, setFailReason] = useState<string>("");
 
-  const upiId = "9840655558@upi";
-  const upiLink = useMemo(() => {
-    const params = new URLSearchParams({
-      pa: upiId,
-      pn: "Global Safety Enterprises",
-      cu: "INR",
-    });
-    if (amount) params.set("am", amount);
-    if (invoice) params.set("tn", `Invoice ${invoice}`);
-    return `upi://pay?${params.toString()}`;
-  }, [amount, invoice]);
+  const amountNum = useMemo(() => Number(amount), [amount]);
+  const canSubmit =
+    name.trim().length > 1 &&
+    /^\S+@\S+\.\S+$/.test(email) &&
+    /^[0-9+\-\s()]{7,20}$/.test(phone) &&
+    amountNum > 0 &&
+    product.trim().length > 0;
 
-  function pay(e: React.FormEvent) {
+  useEffect(() => {
+    void loadRazorpay();
+  }, []);
+
+  async function handlePay(e: React.FormEvent) {
     e.preventDefault();
-    if (method === "upi") {
-      window.location.href = upiLink;
+    if (!canSubmit) return;
+    setError(null);
+    setStatus("processing");
+
+    const ready = await loadRazorpay();
+    if (!ready) {
+      setError("Could not load payment gateway. Please check your connection and try again.");
+      setStatus("form");
       return;
     }
-    setDone(true);
+
+    let order: Awaited<ReturnType<typeof createOrder>>;
+    try {
+      order = await createOrder({
+        data: {
+          product,
+          amount: amountNum,
+          customer: { name, company, email, phone, address },
+        },
+      });
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || "Could not create payment order.");
+      setStatus("form");
+      return;
+    }
+
+    const options = {
+      key: order.keyId,
+      amount: order.amount,
+      currency: order.currency,
+      name: "Global Safety Enterprises (P) Ltd",
+      description: product,
+      order_id: order.orderId,
+      prefill: { name, email, contact: phone },
+      notes: { invoice_no: order.invoiceNo, company },
+      theme: { color: "#b91c1c" },
+      method: { upi: true, card: true, netbanking: true, wallet: true, emi: false },
+      handler: async (resp: {
+        razorpay_payment_id: string;
+        razorpay_order_id: string;
+        razorpay_signature: string;
+      }) => {
+        try {
+          const v = await verifyPayment({ data: resp });
+          setResult({ invoiceNo: v.invoiceNo, paymentId: v.paymentId });
+          setStatus("success");
+        } catch (err: any) {
+          console.error(err);
+          setFailReason(err?.message || "Verification failed");
+          setStatus("failed");
+        }
+      },
+      modal: {
+        ondismiss: async () => {
+          try {
+            await recordFailure({
+              data: { razorpay_order_id: order.orderId, reason: "User dismissed checkout" },
+            });
+          } catch {}
+          setStatus("form");
+        },
+      },
+    };
+
+    const rzp = new window.Razorpay!(options);
+    rzp.on("payment.failed", async (resp: any) => {
+      const reason = resp?.error?.description || "Payment failed";
+      try {
+        await recordFailure({
+          data: { razorpay_order_id: order.orderId, reason },
+        });
+      } catch {}
+      setFailReason(reason);
+      setStatus("failed");
+    });
+    rzp.open();
   }
 
-  if (done) {
+  function reset() {
+    setStatus("form");
+    setResult(null);
+    setError(null);
+    setFailReason("");
+  }
+
+  if (status === "success" && result) {
     return (
       <div>
-        <PageHero title="Payment Received" subtitle="Thank you — a receipt will be emailed shortly." />
+        <PageHero title="Payment Successful" subtitle="Thank you — a receipt has been emailed." />
         <section className="py-20">
           <div className="container mx-auto px-4 max-w-xl">
             <div className="rounded-2xl bg-card border border-border p-8 shadow-card text-center">
@@ -58,10 +184,49 @@ function PaymentPage() {
                 <CheckCircle2 className="h-8 w-8" />
               </div>
               <h2 className="font-display text-2xl font-bold text-primary">Payment Successful</h2>
-              <p className="mt-2 text-muted-foreground">Invoice <strong>{invoice || "—"}</strong> paid by <strong>{name || "—"}</strong></p>
-              <div className="mt-6 text-3xl font-display font-bold text-fire-gradient">₹ {Number(amount || 0).toLocaleString("en-IN")}</div>
-              <button onClick={() => { setDone(false); setInvoice(""); setName(""); setAmount(""); }} className="mt-8 inline-flex items-center justify-center rounded-md border border-border bg-background px-5 py-2.5 text-sm font-semibold hover:border-primary hover:text-primary transition-smooth">
+              <p className="mt-2 text-muted-foreground">
+                Invoice <strong>{result.invoiceNo}</strong>
+              </p>
+              <div className="mt-6 text-3xl font-display font-bold text-fire-gradient">
+                ₹ {Number(amount || 0).toLocaleString("en-IN")}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground font-mono break-all">
+                Payment ID: {result.paymentId}
+              </p>
+              <button
+                onClick={reset}
+                className="mt-8 inline-flex items-center justify-center rounded-md border border-border bg-background px-5 py-2.5 text-sm font-semibold hover:border-primary hover:text-primary transition-smooth"
+              >
                 Make another payment
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (status === "failed") {
+    return (
+      <div>
+        <PageHero title="Payment Failed" subtitle="Your transaction could not be completed." />
+        <section className="py-20">
+          <div className="container mx-auto px-4 max-w-xl">
+            <div className="rounded-2xl bg-card border border-border p-8 shadow-card text-center">
+              <div className="h-16 w-16 rounded-full bg-destructive/15 text-destructive mx-auto flex items-center justify-center mb-4">
+                <XCircle className="h-8 w-8" />
+              </div>
+              <h2 className="font-display text-2xl font-bold text-primary">
+                Payment Failed. Please try again.
+              </h2>
+              {failReason && (
+                <p className="mt-2 text-sm text-muted-foreground">{failReason}</p>
+              )}
+              <button
+                onClick={reset}
+                className="mt-8 inline-flex items-center justify-center rounded-md bg-fire-gradient px-6 py-2.5 text-sm font-semibold text-accent-foreground shadow-fire hover:scale-[1.01] transition-smooth"
+              >
+                Try again
               </button>
             </div>
           </div>
@@ -72,76 +237,109 @@ function PaymentPage() {
 
   return (
     <div>
-      <PageHero title="Make a Payment" subtitle="Pay your invoice securely. We support UPI, cards and net banking." />
-      <section className="py-20">
+      <PageHero
+        title="Make a Payment"
+        subtitle="Pay securely via UPI, credit/debit card, net banking or wallet. Powered by Razorpay."
+      />
+      <section className="py-16 md:py-20">
         <div className="container mx-auto px-4 grid lg:grid-cols-[1fr_360px] gap-8 items-start">
-          <form onSubmit={pay} className="rounded-2xl bg-card border border-border p-6 md:p-8 shadow-card">
-            <h3 className="font-display text-xl font-semibold text-primary">Invoice details</h3>
-            <div className="mt-6 grid sm:grid-cols-2 gap-4">
-              <Field label="Invoice Number" value={invoice} onChange={setInvoice} placeholder="INV-2026-0001" required />
-              <Field label="Customer Name" value={name} onChange={setName} placeholder="Your company / name" required />
-              <Field label="Amount (₹)" value={amount} onChange={setAmount} placeholder="0.00" required type="number" />
-              <Field label="Email for receipt" placeholder="you@company.com" type="email" />
-            </div>
-
-            <h3 className="mt-8 font-display text-xl font-semibold text-primary">Payment method</h3>
-            <div className="mt-4 grid sm:grid-cols-3 gap-3">
-              {METHODS.map((m) => (
-                <button
-                  type="button"
-                  key={m.id}
-                  onClick={() => setMethod(m.id)}
-                  className={
-                    (method === m.id ? "border-primary bg-primary/5 text-primary " : "border-border hover:border-primary/50 ") +
-                    "rounded-xl border-2 p-4 flex flex-col items-center gap-2 transition-smooth"
-                  }
+          <form
+            onSubmit={handlePay}
+            className="rounded-2xl bg-card border border-border p-6 md:p-8 shadow-card"
+          >
+            <h3 className="font-display text-xl font-semibold text-primary">Product / Service</h3>
+            <div className="mt-4 grid sm:grid-cols-2 gap-4">
+              <label className="block sm:col-span-2">
+                <Lbl>Product / Service</Lbl>
+                <select
+                  value={product}
+                  onChange={(e) => setProduct(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  <m.icon className="h-6 w-6" />
-                  <span className="text-sm font-semibold">{m.label}</span>
-                </button>
-              ))}
+                  {PRODUCTS.map((p) => (
+                    <option key={p}>{p}</option>
+                  ))}
+                </select>
+              </label>
+              <Field label="Amount (₹)" value={amount} onChange={setAmount} type="number" placeholder="0.00" required />
             </div>
 
-            {method === "upi" && (
-              <div className="mt-6 rounded-xl bg-secondary/60 p-5 flex flex-col sm:flex-row items-center gap-5">
-                <div className="h-28 w-28 rounded-lg bg-white p-2 grid grid-cols-8 gap-px shadow flex-shrink-0">
-                  {Array.from({ length: 64 }).map((_, i) => (
-                    <div key={i} className={(i * 7) % 3 === 0 ? "bg-primary-deep" : "bg-transparent"} />
-                  ))}
-                </div>
-                <div className="text-sm flex-1">
-                  <div className="font-semibold text-primary">Scan UPI QR</div>
-                  <div className="text-muted-foreground mt-1">UPI ID: <code className="bg-card px-1.5 py-0.5 rounded font-mono">{upiId}</code></div>
-                  <a
-                    href={upiLink}
-                    className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-deep transition-smooth"
-                  >
-                    <Smartphone className="h-4 w-4" />
-                    Pay via UPI App
-                    <ExternalLink className="h-3.5 w-3.5 opacity-70" />
-                  </a>
-                  <p className="mt-2 text-xs text-muted-foreground">Opens your phone's UPI app (GPay, PhonePe, Paytm, etc.)</p>
-                </div>
+            <h3 className="mt-8 font-display text-xl font-semibold text-primary">Your details</h3>
+            <div className="mt-4 grid sm:grid-cols-2 gap-4">
+              <Field label="Name" value={name} onChange={setName} placeholder="V. Sivasankar" required />
+              <Field label="Company Name" value={company} onChange={setCompany} placeholder="ABC Pvt Ltd" />
+              <Field label="Email" value={email} onChange={setEmail} type="email" placeholder="you@company.com" required />
+              <Field label="Phone" value={phone} onChange={setPhone} placeholder="+91 98XXXXXXXX" required />
+              <label className="block sm:col-span-2">
+                <Lbl>Address</Lbl>
+                <textarea
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  rows={3}
+                  placeholder="Billing address"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                />
+              </label>
+            </div>
+
+            {error && (
+              <div className="mt-6 rounded-md border border-destructive/50 bg-destructive/5 text-destructive text-sm px-4 py-3">
+                {error}
               </div>
             )}
 
-            <button type="submit" className="mt-8 w-full inline-flex items-center justify-center gap-2 rounded-md bg-fire-gradient py-3.5 font-semibold text-accent-foreground shadow-fire hover:scale-[1.01] transition-smooth">
-              {method === "upi" ? (
-                <><Smartphone className="h-4 w-4" /> Open UPI App</>
+            <button
+              type="submit"
+              disabled={!canSubmit || status === "processing"}
+              className="mt-8 w-full inline-flex items-center justify-center gap-2 rounded-md bg-fire-gradient py-3.5 font-semibold text-accent-foreground shadow-fire hover:scale-[1.01] transition-smooth disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              {status === "processing" ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Opening secure checkout…
+                </>
               ) : (
-                <><Lock className="h-4 w-4" /> Pay Now</>
+                <>
+                  <Lock className="h-4 w-4" /> Pay ₹{amount ? Number(amount).toLocaleString("en-IN") : "0"} securely
+                </>
               )}
             </button>
+
+            <p className="mt-4 text-xs text-muted-foreground flex items-center gap-1.5">
+              <CreditCard className="h-3.5 w-3.5" />
+              Accepts UPI, Visa, Mastercard, RuPay, Net Banking & Wallets
+            </p>
           </form>
 
-          <aside className="rounded-2xl bg-brand-gradient text-primary-foreground p-6 shadow-glow">
-            <h4 className="font-display font-semibold">Secure & Encrypted</h4>
-            <p className="mt-2 text-sm opacity-90">All transactions are encrypted end-to-end. We never store your full card details on our servers.</p>
-            <ul className="mt-6 space-y-2 text-sm">
-              {["PCI DSS aligned gateway", "Instant payment confirmation", "GST invoice on email"].map((b) => (
-                <li key={b} className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-accent-glow flex-shrink-0 mt-0.5" /> {b}</li>
-              ))}
-            </ul>
+          <aside className="space-y-4">
+            <div className="rounded-2xl bg-brand-gradient text-primary-foreground p-6 shadow-glow">
+              <h4 className="font-display font-semibold">Secure & Encrypted</h4>
+              <p className="mt-2 text-sm opacity-90">
+                Payments are processed by Razorpay over 256-bit TLS. We never see or store your card or UPI credentials.
+              </p>
+              <ul className="mt-6 space-y-2 text-sm">
+                {["PCI DSS Level 1 gateway", "Instant payment confirmation", "GST invoice on email"].map((b) => (
+                  <li key={b} className="flex gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-accent-glow flex-shrink-0 mt-0.5" /> {b}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-2xl bg-card border border-border p-6">
+              <div className="flex items-center gap-2 text-primary font-semibold">
+                <Smartphone className="h-4 w-4" /> Direct UPI
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Prefer paying directly? Send to UPI ID{" "}
+                <code className="bg-secondary px-1.5 py-0.5 rounded font-mono text-xs">9840655558@upi</code>
+              </p>
+              <a
+                href="upi://pay?pa=9840655558@upi&pn=Global%20Safety%20Enterprises&cu=INR"
+                className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+              >
+                Open in UPI App <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
           </aside>
         </div>
       </section>
@@ -149,15 +347,37 @@ function PaymentPage() {
   );
 }
 
-function Field({ label, value, onChange, placeholder, type = "text", required }: { label: string; value?: string; onChange?: (v: string) => void; placeholder?: string; type?: string; required?: boolean }) {
+function Lbl({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+      {children}
+    </span>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  required,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  required?: boolean;
+}) {
   return (
     <label className="block">
-      <span className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{label}</span>
+      <Lbl>{label}</Lbl>
       <input
         type={type}
         value={value}
         required={required}
-        onChange={(e) => onChange?.(e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
       />

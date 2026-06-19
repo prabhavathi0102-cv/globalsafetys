@@ -26,7 +26,7 @@ function PaymentPage() {
   const [amount, setAmount] = useState("");
   const [done, setDone] = useState(false);
 
-  const upiId = "9841781060@upi";
+  const upiId = "9840655558@upi";
   const upiLink = useMemo(() => {
     const params = new URLSearchParams({
       pa: upiId,

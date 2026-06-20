@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CreditCard, Lock, CheckCircle2, XCircle, Loader2, Smartphone, ExternalLink } from "lucide-react";
+import { CreditCard, Lock, CheckCircle2, XCircle, Loader2, Smartphone, ExternalLink, Copy, Check } from "lucide-react";
 import { PageHero } from "@/components/site/Section";
 import {
   createRazorpayOrder,
@@ -325,21 +325,8 @@ function PaymentPage() {
               </ul>
             </div>
 
-            <div className="rounded-2xl bg-card border border-border p-6">
-              <div className="flex items-center gap-2 text-primary font-semibold">
-                <Smartphone className="h-4 w-4" /> Direct UPI
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Prefer paying directly? Send to UPI ID{" "}
-                <code className="bg-secondary px-1.5 py-0.5 rounded font-mono text-xs">9840655558@upi</code>
-              </p>
-              <a
-                href="upi://pay?pa=9840655558@upi&pn=Global%20Safety%20Enterprises&cu=INR"
-                className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
-              >
-                Open in UPI App <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
+            <DirectUpiCard amount={amount} name={name} />
+
           </aside>
         </div>
       </section>
@@ -382,5 +369,95 @@ function Field({
         className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
       />
     </label>
+  );
+}
+
+const UPI_VPA = "9840655558@upi";
+const UPI_PAYEE = "Global Safety Enterprises";
+
+function isMobileUA() {
+  if (typeof navigator === "undefined") return false;
+  return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+}
+
+function buildUpiUri(amount: string, note: string) {
+  const params = new URLSearchParams({
+    pa: UPI_VPA,
+    pn: UPI_PAYEE,
+    cu: "INR",
+  });
+  const amt = Number(amount);
+  if (amt > 0) params.set("am", amt.toFixed(2));
+  if (note) params.set("tn", note.slice(0, 80));
+  return `upi://pay?${params.toString()}`;
+}
+
+function DirectUpiCard({ amount, name }: { amount: string; name: string }) {
+  const [showQr, setShowQr] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const note = name ? `Payment from ${name}` : "Website payment";
+  const uri = buildUpiUri(amount, note);
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(uri)}`;
+
+  async function copyVpa() {
+    try {
+      await navigator.clipboard.writeText(UPI_VPA);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {}
+  }
+
+  function openUpi() {
+    if (isMobileUA()) {
+      window.location.href = uri;
+    } else {
+      setShowQr((s) => !s);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl bg-card border border-border p-6">
+      <div className="flex items-center gap-2 text-primary font-semibold">
+        <Smartphone className="h-4 w-4" /> Direct UPI
+      </div>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Prefer paying directly? Send to UPI ID{" "}
+        <code className="bg-secondary px-1.5 py-0.5 rounded font-mono text-xs">{UPI_VPA}</code>
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={openUpi}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-semibold text-primary hover:border-primary transition-smooth"
+        >
+          {isMobileUA() ? (
+            <>Open in UPI App <ExternalLink className="h-3 w-3" /></>
+          ) : (
+            <>{showQr ? "Hide QR" : "Show QR to pay"}</>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={copyVpa}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-semibold hover:border-primary hover:text-primary transition-smooth"
+        >
+          {copied ? <><Check className="h-3.5 w-3.5" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy UPI ID</>}
+        </button>
+        <a
+          href={uri}
+          className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold text-muted-foreground hover:text-primary transition-smooth"
+        >
+          upi:// link
+        </a>
+      </div>
+      {showQr && (
+        <div className="mt-4 flex flex-col items-center gap-2 rounded-lg bg-background border border-border p-4">
+          <img src={qrSrc} alt="UPI QR code" width={240} height={240} className="rounded" />
+          <p className="text-xs text-muted-foreground text-center">
+            Scan with any UPI app (GPay, PhonePe, Paytm, BHIM){Number(amount) > 0 ? ` — ₹${Number(amount).toLocaleString("en-IN")}` : ""}
+          </p>
+        </div>
+      )}
+    </div>
   );
 }

@@ -325,21 +325,8 @@ function PaymentPage() {
               </ul>
             </div>
 
-            <div className="rounded-2xl bg-card border border-border p-6">
-              <div className="flex items-center gap-2 text-primary font-semibold">
-                <Smartphone className="h-4 w-4" /> Direct UPI
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Prefer paying directly? Send to UPI ID{" "}
-                <code className="bg-secondary px-1.5 py-0.5 rounded font-mono text-xs">9840655558@upi</code>
-              </p>
-              <a
-                href="upi://pay?pa=9840655558@upi&pn=Global%20Safety%20Enterprises&cu=INR"
-                className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
-              >
-                Open in UPI App <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
+            <DirectUpiCard amount={amount} name={name} />
+
           </aside>
         </div>
       </section>

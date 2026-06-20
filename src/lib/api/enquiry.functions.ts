@@ -50,12 +50,11 @@ export const submitEnquiry = createServerFn({ method: "POST" })
     const responseText = await res.text().catch(() => "");
     if (!res.ok) {
       console.error("Sheet webhook non-2xx", res.status, responseText);
-      throw new Error(`Sheet save failed (${res.status})`);
+      // Don't fail the user's enquiry submission if the sheet is misconfigured
     }
     // Google Apps Script returns HTML error pages (e.g. "Fout") with HTTP 200 when the deployment is misconfigured
     if (responseText.trim().startsWith("<") || responseText.includes("Fout")) {
-      console.error("Sheet webhook returned an HTML error page instead of JSON:", responseText.slice(0, 500));
-      throw new Error("Google Sheet webhook is misconfigured. Please check your Apps Script deployment (must be a Web App with 'Anyone' access, using the /exec URL).");
+      console.warn("Sheet webhook returned an HTML error page (Apps Script likely misconfigured). Enquiry will still be accepted. Response:", responseText.slice(0, 300));
     }
     console.log("Sheet webhook response:", res.status, responseText.slice(0, 500));
     return { ok: true as const, referenceNumber, submittedAt: now.toISOString() };

@@ -24,9 +24,11 @@ export const submitEnquiry = createServerFn({ method: "POST" })
     const referenceNumber = `GSE-${datePart}-${rand}`;
 
     const payload = {
-      timestamp: now.toISOString(),
-      referenceNumber,
+      // Keep these first so generic "append all values" Apps Scripts log them in the leftmost columns
       reference_number: referenceNumber,
+      referenceNumber,
+      timestamp: now.toISOString(),
+      submitted_at: now.toISOString(),
       ...data,
       // Aliases so Apps Scripts using either naming convention work
       name: data.customerName,
@@ -36,6 +38,7 @@ export const submitEnquiry = createServerFn({ method: "POST" })
       company_name: data.companyName,
       companyName: data.companyName,
     };
+
 
     const res = await fetch(url, {
       method: "POST",

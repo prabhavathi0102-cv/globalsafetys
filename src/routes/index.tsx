@@ -62,7 +62,7 @@ function HomePage() {
               <span className="h-2 w-2 rounded-full bg-accent-glow animate-pulse" /> Trusted since inception
             </div>
             <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.05]">
-              Protecting Lives & Properties with <span className="text-fire-gradient">Trusted Fire Safety</span> Solutions
+              Fire Safety and Security Solutions
             </h1>
             <p className="mt-6 text-base sm:text-lg opacity-90 leading-relaxed">
               Authorized distributor of Fire Alarm Systems, PA Systems, Fire Extinguishers, Hydrant Systems, Valves, Cables and Fire Doors.

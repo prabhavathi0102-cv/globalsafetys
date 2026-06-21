@@ -135,7 +135,7 @@ function HomePage() {
       </section>
 
       {/* CERTIFICATIONS & EXPERIENCE */}
-      <section className="py-20 md:py-24 bg-secondary/40">
+      <section className="py-20 md:py-24">
         <div className="container mx-auto px-4">
           <SectionHeader eyebrow="Certifications & Experience" title="Trusted expertise, nationwide reach" description="A legacy of certified service, delivered across every major industry and region in India." />
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">

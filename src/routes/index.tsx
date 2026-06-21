@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ShieldCheck, Award, Users, Wrench, Zap, Headphones, ArrowRight, CheckCircle2, Star, Quote } from "lucide-react";
+import { ShieldCheck, Award, Users, Wrench, Zap, Headphones, ArrowRight, CheckCircle2, Star, Quote, Phone, Clock, MapPin } from "lucide-react";
 import { SectionHeader } from "@/components/site/Section";
 import hero from "@/assets/hero.jpg";
 import alarmImg from "@/assets/product-alarm.jpg";
@@ -51,9 +51,32 @@ const testimonials = [
   { name: "Kavitha R.", role: "Building Manager, Commercial Complex", text: "The annual maintenance contract has been seamless. They handle inspections, refills and compliance paperwork without follow-ups." },
 ];
 
+const stats = [
+  { icon: Clock, value: "15+", label: "Years Experience" },
+  { icon: Wrench, value: "500+", label: "Installations" },
+  { icon: Award, value: "ISO", label: "Certified" },
+  { icon: MapPin, value: "PAN", label: "India Service" },
+];
+
 function HomePage() {
   return (
     <div>
+      {/* EMERGENCY BANNER */}
+      <section className="bg-primary-deep text-primary-foreground">
+        <div className="container mx-auto px-4 py-3 md:py-4 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-2 text-sm md:text-base">
+          <div className="inline-flex items-center gap-2 font-semibold">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-glow opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent" />
+            </span>
+            24/7 Emergency Support — Call us now
+          </div>
+          <a href="tel:+919840655558" className="inline-flex items-center gap-2 rounded-md bg-fire-gradient px-4 py-1.5 font-semibold text-accent-foreground shadow-fire hover:scale-[1.03] transition-smooth">
+            <Phone className="h-4 w-4" /> +91 98406 55558
+          </a>
+        </div>
+      </section>
+
       {/* HERO */}
       <section className="relative overflow-hidden">
         <img src={hero} alt="Industrial fire safety setup with extinguishers, alarm panel and hydrant" className="absolute inset-0 h-full w-full object-cover" width={1920} height={1080} />
@@ -105,6 +128,24 @@ function HomePage() {
                 </div>
                 <h3 className="font-display font-semibold text-lg text-primary">{w.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{w.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CERTIFICATIONS & EXPERIENCE */}
+      <section className="py-20 md:py-24">
+        <div className="container mx-auto px-4">
+          <SectionHeader eyebrow="Certifications & Experience" title="Trusted expertise, nationwide reach" description="A legacy of certified service, delivered across every major industry and region in India." />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+            {stats.map((s, i) => (
+              <div key={s.label} className="group rounded-2xl bg-card border border-border p-6 text-center shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-smooth animate-float-up" style={{ animationDelay: `${i * 80}ms` }}>
+                <div className="mx-auto h-14 w-14 rounded-2xl bg-fire-gradient text-accent-foreground flex items-center justify-center shadow-fire mb-4 group-hover:scale-110 transition-smooth">
+                  <s.icon className="h-7 w-7" />
+                </div>
+                <div className="font-display text-3xl md:text-4xl font-bold text-primary">{s.value}</div>
+                <div className="mt-1 text-sm font-medium text-muted-foreground">{s.label}</div>
               </div>
             ))}
           </div>

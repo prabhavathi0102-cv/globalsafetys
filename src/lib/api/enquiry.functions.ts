@@ -23,6 +23,32 @@ export const submitEnquiry = createServerFn({ method: "POST" })
     const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
     const referenceNumber = `GSE-${datePart}-${rand}`;
 
+    // Pre-built ordered row + headers — Apps Scripts can just call
+    //   sheet.appendRow(JSON.parse(e.postData.contents).row)
+    // and get the reference number guaranteed in column A.
+    const headers = [
+      "Reference No",
+      "Timestamp",
+      "Customer Name",
+      "Company",
+      "Mobile",
+      "Email",
+      "Product Interested",
+      "City",
+      "Message",
+    ];
+    const row = [
+      referenceNumber,
+      now.toISOString(),
+      data.customerName,
+      data.companyName ?? "",
+      data.mobile,
+      data.email,
+      data.productInterested ?? "",
+      data.city ?? "",
+      data.message ?? "",
+    ];
+
     const payload = {
       // Keep these first so generic "append all values" Apps Scripts log them in the leftmost columns
       reference_number: referenceNumber,
@@ -37,6 +63,9 @@ export const submitEnquiry = createServerFn({ method: "POST" })
       company: data.companyName,
       company_name: data.companyName,
       companyName: data.companyName,
+      // Ready-to-append ordered shape
+      headers,
+      row,
     };
 
 

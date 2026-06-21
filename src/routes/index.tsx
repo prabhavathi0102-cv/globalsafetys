@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ShieldCheck, Award, Users, Wrench, Zap, Headphones, ArrowRight, CheckCircle2, Star, Quote } from "lucide-react";
+import { ShieldCheck, Award, Users, Wrench, Zap, Headphones, ArrowRight, CheckCircle2, Star, Quote, Phone, Clock, MapPin } from "lucide-react";
 import { SectionHeader } from "@/components/site/Section";
 import hero from "@/assets/hero.jpg";
 import alarmImg from "@/assets/product-alarm.jpg";

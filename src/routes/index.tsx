@@ -47,6 +47,8 @@ const testimonials = [
   { name: "Ramesh K.", role: "Facility Manager, IT Park Chennai", text: "Their addressable alarm install was flawless — clean cabling, prompt commissioning and ongoing AMC has been excellent." },
   { name: "Priya S.", role: "Project Engineer, Tirupur Textiles", text: "Quoted, supplied and installed our entire hydrant network on schedule. Highly recommended for industrial fire safety." },
   { name: "Arun M.", role: "Hotel Owner", text: "Switched to Global Safety for our extinguisher AMC — far more responsive and well-priced than our previous vendor." },
+  { name: "Saravanan T.", role: "Safety Officer, Automotive Plant", text: "Supplied and commissioned our fire alarm and PA system across three shop floors. Their team was professional and met every deadline." },
+  { name: "Kavitha R.", role: "Building Manager, Commercial Complex", text: "The annual maintenance contract has been seamless. They handle inspections, refills and compliance paperwork without follow-ups." },
 ];
 
 function HomePage() {

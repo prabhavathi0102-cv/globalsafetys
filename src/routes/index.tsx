@@ -61,6 +61,22 @@ const stats = [
 function HomePage() {
   return (
     <div>
+      {/* EMERGENCY BANNER */}
+      <section className="bg-primary-deep text-primary-foreground">
+        <div className="container mx-auto px-4 py-3 md:py-4 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-2 text-sm md:text-base">
+          <div className="inline-flex items-center gap-2 font-semibold">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-glow opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent" />
+            </span>
+            24/7 Emergency Support — Call us now
+          </div>
+          <a href="tel:+919840655558" className="inline-flex items-center gap-2 rounded-md bg-fire-gradient px-4 py-1.5 font-semibold text-accent-foreground shadow-fire hover:scale-[1.03] transition-smooth">
+            <Phone className="h-4 w-4" /> +91 98406 55558
+          </a>
+        </div>
+      </section>
+
       {/* HERO */}
       <section className="relative overflow-hidden">
         <img src={hero} alt="Industrial fire safety setup with extinguishers, alarm panel and hydrant" className="absolute inset-0 h-full w-full object-cover" width={1920} height={1080} />

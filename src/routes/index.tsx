@@ -51,6 +51,13 @@ const testimonials = [
   { name: "Kavitha R.", role: "Building Manager, Commercial Complex", text: "The annual maintenance contract has been seamless. They handle inspections, refills and compliance paperwork without follow-ups." },
 ];
 
+const stats = [
+  { icon: Clock, value: "15+", label: "Years Experience" },
+  { icon: Wrench, value: "500+", label: "Installations" },
+  { icon: Award, value: "ISO", label: "Certified" },
+  { icon: MapPin, value: "PAN", label: "India Service" },
+];
+
 function HomePage() {
   return (
     <div>

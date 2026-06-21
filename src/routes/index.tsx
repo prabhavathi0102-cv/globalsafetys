@@ -134,6 +134,24 @@ function HomePage() {
         </div>
       </section>
 
+      {/* CERTIFICATIONS & EXPERIENCE */}
+      <section className="py-20 md:py-24 bg-secondary/40">
+        <div className="container mx-auto px-4">
+          <SectionHeader eyebrow="Certifications & Experience" title="Trusted expertise, nationwide reach" description="A legacy of certified service, delivered across every major industry and region in India." />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+            {stats.map((s, i) => (
+              <div key={s.label} className="group rounded-2xl bg-card border border-border p-6 text-center shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-smooth animate-float-up" style={{ animationDelay: `${i * 80}ms` }}>
+                <div className="mx-auto h-14 w-14 rounded-2xl bg-fire-gradient text-accent-foreground flex items-center justify-center shadow-fire mb-4 group-hover:scale-110 transition-smooth">
+                  <s.icon className="h-7 w-7" />
+                </div>
+                <div className="font-display text-3xl md:text-4xl font-bold text-primary">{s.value}</div>
+                <div className="mt-1 text-sm font-medium text-muted-foreground">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* PRODUCTS */}
       <section className="py-20 md:py-24 bg-secondary/40">
         <div className="container mx-auto px-4">

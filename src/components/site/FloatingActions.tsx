@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MessageCircle, Phone, X, Send, Flame } from "lucide-react";
+import { MessageCircle, Phone, X, Send, Flame, Home } from "lucide-react";
 
 type Msg = { role: "user" | "bot"; text: string };
 
@@ -8,35 +8,172 @@ const QUICK = [
   "What is the cost of a fire alarm system?",
   "Do you provide AMC services?",
   "How can I request a quotation?",
+  "What products do you supply?",
+  "Where are you located?",
 ];
+
+// Knowledge base — extended QnA document
+const QNA: { keywords: string[]; answer: string }[] = [
+  {
+    keywords: ["electrical", "class c", "co2", "clean agent"],
+    answer:
+      "For electrical fires (Class C), we recommend CO2 or Clean Agent extinguishers — both are non-conductive and leave no residue. We stock 2kg, 4.5kg & 6.8kg CO2 models from Safex.",
+  },
+  {
+    keywords: ["abc", "powder", "dry chemical"],
+    answer:
+      "ABC Dry Powder extinguishers (4kg, 6kg, 9kg) are versatile — effective on Class A (solids), B (liquids) and C (gases). Ideal for offices, shops, warehouses and vehicles.",
+  },
+  {
+    keywords: ["kitchen", "class k", "cooking", "oil"],
+    answer:
+      "For commercial kitchens and cooking oil fires (Class K), we supply Wet Chemical extinguishers — they cool the oil and form a soapy film that prevents re-ignition.",
+  },
+  {
+    keywords: ["foam", "class b", "flammable liquid", "petrol", "diesel"],
+    answer:
+      "Mechanical Foam (AFFF) extinguishers handle Class B flammable liquid fires — petrol, diesel, paints, solvents. Available in 9L stored-pressure models.",
+  },
+  {
+    keywords: ["cost", "price", "quote", "quotation", "rate"],
+    answer:
+      "Pricing depends on site area, panel type (conventional/addressable) and detector count. Please share your requirement via the Contact page or call +91 98406 55558 — we send detailed quotes within 24 hours.",
+  },
+  {
+    keywords: ["amc", "maintenance", "service contract"],
+    answer:
+      "Yes — we offer comprehensive AMC contracts covering preventive maintenance, quarterly inspections, refilling and emergency repairs for fire alarms, hydrants, extinguishers and PA systems.",
+  },
+  {
+    keywords: ["refill", "refilling"],
+    answer:
+      "We refill all types of fire extinguishers — ABC, CO2, Foam, Water and Wet Chemical — as per IS 2190 standards, with hydro-testing every 5 years.",
+  },
+  {
+    keywords: ["hydrant", "landing valve", "hose reel", "sprinkler"],
+    answer:
+      "A hydrant system uses pressurised water through landing valves, hose reels and pipework to fight large fires. We supply Omex landing valves, hose reels, hoses and sprinklers, with full installation.",
+  },
+  {
+    keywords: ["alarm", "detector", "smoke", "heat", "call point"],
+    answer:
+      "We supply Conventional & Addressable Fire Alarm panels from Ravel, plus smoke/heat detectors and manual call points. Installation, commissioning and AMC included.",
+  },
+  {
+    keywords: ["pa", "public address", "voice evacuation", "honeywell"],
+    answer:
+      "We are authorised distributors for Honeywell PA & Voice Evacuation systems — speakers, amplifiers, BGM and emergency announcement systems.",
+  },
+  {
+    keywords: ["fire door", "door"],
+    answer:
+      "We supply 60/90/120-minute rated fire doors with certified hinges, locks and door closers — for staircases, lift lobbies and electrical rooms.",
+  },
+  {
+    keywords: ["install", "installation", "commission"],
+    answer:
+      "We provide turnkey installation for fire alarms, hydrants, PA systems and fire doors with certified technicians and post-install commissioning support.",
+  },
+  {
+    keywords: ["noc", "approval", "tac", "certificate"],
+    answer:
+      "We assist with TAC-approved products and documentation for Fire Department NOC — drawings, calculations and compliance certificates included.",
+  },
+  {
+    keywords: ["training", "demo", "mock drill"],
+    answer:
+      "We conduct on-site fire safety training and mock-drill demonstrations for your staff — extinguisher handling, evacuation procedure and emergency response.",
+  },
+  {
+    keywords: ["product", "supply", "brand", "what do you sell"],
+    answer:
+      "We supply fire extinguishers (Safex), hydrant components (Omex), fire alarm systems (Ravel), PA & voice evacuation (Honeywell), sprinklers, hoses, fire doors and signage.",
+  },
+  {
+    keywords: ["hour", "open", "timing"],
+    answer:
+      "Office hours: Mon–Sat, 9:30 AM – 6:30 PM. Emergency support: 24×7 on +91 98406 55558.",
+  },
+  {
+    keywords: ["contact", "address", "location", "office", "where"],
+    answer:
+      "Chennai: 295, M.K.N Road, Alandur, Chennai 600016. Tirupur: 3/2, Govindarajulu St, Avinashi Rd, Tirupur 641602. Email: info@globalsafetys.in",
+  },
+  {
+    keywords: ["distributor", "dealer", "partner"],
+    answer:
+      "We are authorised distributors for Safex, Omex, Ravel and Honeywell. Visit our Distributors page for the full list of brands we represent.",
+  },
+  {
+    keywords: ["payment", "pay", "upi", "bank"],
+    answer:
+      "We accept UPI, NEFT/RTGS and cheque payments. Visit the Payment page on our site for UPI details and a secure online payment option.",
+  },
+  {
+    keywords: ["hello", "hi", "hey", "namaste", "good morning", "good evening"],
+    answer:
+      "Hello! 👋 I'm the Fire Safety Assistant. How can I help you today — products, AMC, installation, or a quote?",
+  },
+];
+
+const FAREWELL_KEYWORDS = [
+  "thank you",
+  "thanks",
+  "thank u",
+  "thx",
+  "good bye",
+  "goodbye",
+  "bye",
+  "nothing",
+  "fine",
+  "no thanks",
+  "that's all",
+  "thats all",
+];
+
+function isFarewell(text: string): boolean {
+  const t = text.toLowerCase().trim();
+  return FAREWELL_KEYWORDS.some((k) => t === k || t.includes(k));
+}
 
 function botReply(input: string): string {
   const t = input.toLowerCase();
-  if (t.includes("electrical")) return "For electrical fires (Class C), we recommend CO2 or Clean Agent extinguishers — both are non-conductive and leave no residue. We stock 2kg, 4.5kg & 6.8kg CO2 models from Safex.";
-  if (t.includes("cost") || t.includes("price") || t.includes("quote") || t.includes("quotation")) return "Pricing depends on site area, panel type (conventional/addressable) and detector count. Please share your requirement via the Contact page or call +91 98406 55558 — we send detailed quotes within 24 hours.";
-  if (t.includes("amc") || t.includes("maintenance")) return "Yes — we offer comprehensive AMC contracts covering preventive maintenance, quarterly inspections, and emergency repairs for fire alarms, hydrants, extinguishers and PA systems.";
-  if (t.includes("hydrant")) return "A hydrant system uses pressurized water through landing valves, hose reels and pipework to fight large fires. We supply Omex landing valves, hose reels, hoses and sprinklers, with full installation.";
-  if (t.includes("alarm")) return "We supply Conventional & Addressable Fire Alarm panels from Ravel, plus smoke/heat detectors and manual call points. Installation, commissioning and AMC included.";
-  if (t.includes("pa") || t.includes("public address")) return "We are authorized distributors for Honeywell PA & Voice Evacuation systems — speakers, amplifiers, BGM and emergency announcement systems.";
-  if (t.includes("install")) return "We provide turnkey installation for fire alarms, hydrants, PA systems and fire doors with certified technicians and post-install commissioning support.";
-  if (t.includes("hour") || t.includes("open")) return "Office hours: Mon–Sat, 9:30 AM – 6:30 PM. Emergency support: 24×7 on +91 98406 55558.";
-  if (t.includes("contact") || t.includes("address")) return "Chennai: 295, M.K.N Road, Alandur, Chennai 600016. Tirupur: 3/2, Govindarajulu St, Avinashi Rd, Tirupur 641602. Email: info@globalsafetys.in";
+  if (isFarewell(t)) return "Goodbye, see you later.";
+  const match = QNA.find((q) => q.keywords.some((k) => t.includes(k)));
+  if (match) return match.answer;
   return "Thanks for your message! I can help with product recommendations, AMC, installation, quotes and contact details. You can also call +91 98406 55558 or use the Contact form for a personalised response.";
 }
+
+const WELCOME: Msg = {
+  role: "bot",
+  text: "Hi! I'm Fire Safety Assistant 🔥 — ask me about products, AMC, installation, or quotes.",
+};
 
 export function FloatingActions() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
-  const [msgs, setMsgs] = useState<Msg[]>([
-    { role: "bot", text: "Hi! I'm Fire Safety Assistant 🔥 — ask me about products, AMC, installation, or quotes." },
-  ]);
+  const [msgs, setMsgs] = useState<Msg[]>([WELCOME]);
 
   function send(text: string) {
     const value = text.trim();
     if (!value) return;
-    setMsgs((m) => [...m, { role: "user", text: value }, { role: "bot", text: botReply(value) }]);
+    const reply = botReply(value);
+    setMsgs((m) => [...m, { role: "user", text: value }, { role: "bot", text: reply }]);
     setInput("");
   }
+
+  function resetToMenu() {
+    setMsgs([
+      WELCOME,
+      { role: "bot", text: "Back to main menu — pick a topic below or type your question." },
+    ]);
+    setInput("");
+  }
+
+  const showQuick =
+    msgs.length <= 1 ||
+    (msgs[msgs.length - 1]?.role === "bot" &&
+      msgs[msgs.length - 1]?.text.includes("Back to main menu"));
 
   return (
     <>
@@ -70,14 +207,26 @@ export function FloatingActions() {
       {/* Chat panel */}
       {open && (
         <div className="fixed right-4 bottom-24 z-50 w-[92vw] max-w-sm rounded-2xl bg-card shadow-card-hover border border-border overflow-hidden animate-float-up">
-          <div className="bg-brand-gradient text-primary-foreground p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-white/15 flex items-center justify-center">
-              <Flame className="h-5 w-5 animate-flame" />
+          <div className="bg-brand-gradient text-primary-foreground p-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-white/15 flex items-center justify-center">
+                <Flame className="h-5 w-5 animate-flame" />
+              </div>
+              <div>
+                <div className="font-display font-semibold">Fire Safety Assistant</div>
+                <div className="text-xs opacity-80">Typically replies instantly</div>
+              </div>
             </div>
-            <div>
-              <div className="font-display font-semibold">Fire Safety Assistant</div>
-              <div className="text-xs opacity-80">Typically replies instantly</div>
-            </div>
+            <button
+              type="button"
+              onClick={resetToMenu}
+              aria-label="Back to main menu"
+              title="Back to main menu"
+              className="h-9 px-2.5 rounded-lg bg-white/15 hover:bg-white/25 transition-smooth flex items-center gap-1.5 text-xs font-medium"
+            >
+              <Home className="h-4 w-4" />
+              <span className="hidden sm:inline">Main menu</span>
+            </button>
           </div>
           <div className="h-80 overflow-y-auto p-4 space-y-3 bg-secondary/30">
             {msgs.map((m, i) => (
@@ -93,7 +242,7 @@ export function FloatingActions() {
                 </div>
               </div>
             ))}
-            {msgs.length <= 1 && (
+            {showQuick && (
               <div className="pt-2 space-y-2">
                 <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Try asking</div>
                 {QUICK.map((q) => (
@@ -112,6 +261,15 @@ export function FloatingActions() {
             onSubmit={(e) => { e.preventDefault(); send(input); }}
             className="flex items-center gap-2 p-3 border-t border-border bg-card"
           >
+            <button
+              type="button"
+              onClick={resetToMenu}
+              aria-label="Back to main menu"
+              title="Back to main menu"
+              className="h-10 w-10 rounded-lg border border-input bg-background hover:border-primary hover:text-primary flex items-center justify-center transition-smooth"
+            >
+              <Home className="h-4 w-4" />
+            </button>
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}

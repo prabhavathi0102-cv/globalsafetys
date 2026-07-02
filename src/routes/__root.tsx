@@ -44,12 +44,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
-  // Surface the error message in non-production builds so the developer can
-  // see what actually broke. In production, keep the user-facing copy clean.
-  const showDebug = import.meta.env.DEV;
-  const debugText = showDebug
-    ? `${error?.name ?? "Error"}: ${error?.message ?? "Unknown error"}`
-    : null;
+  // Surface the error message so the developer can see what actually broke.
+  // TODO: hide this behind a build-time flag once the deploy is stable.
+  const showDebug = true;
+  const debugText = `${error?.name ?? "Error"}: ${error?.message ?? "Unknown error"}`;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">

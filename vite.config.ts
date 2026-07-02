@@ -11,10 +11,11 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
-    // Target Vercel's Nitro preset so the build emits .vercel/output with
-    // serverless functions. (Default is Cloudflare per the lovable config.)
-    nitro: {
-      preset: "vercel",
-    },
+  },
+  // Force-enable the Nitro deploy plugin (skipped outside the Lovable sandbox
+  // by default) and target Vercel's preset so the build emits the
+  // .vercel/output layout with one serverless function per route.
+  nitro: {
+    preset: "vercel",
   },
 });

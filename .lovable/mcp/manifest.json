@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "global-safety-mcp",
+      "version": "0.1.0",
+      "title": "Global Safety MCP"
+    },
+    "tools": [
+      {
+        "name": "list_products",
+        "title": "List fire safety products",
+        "description": "List Global Safety's fire safety products (extinguishers, hydrants, alarms, doors, PA systems). Optionally filter by category.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "category": {
+              "type": "string",
+              "enum": [
+                "Extinguisher",
+                "System",
+                "Passive"
+              ],
+              "description": "Filter by product category."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_services",
+        "title": "List fire safety services",
+        "description": "List services offered by Global Safety — installation, AMC, refill, NOC consultancy, training, and audits.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_contact_info",
+        "title": "Get contact information",
+        "description": "Get Global Safety's contact information — phone, email, address, and business hours.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "submit_enquiry",
+        "title": "Submit a customer enquiry",
+        "description": "Submit a fire safety enquiry to Global Safety. Returns a reference number that the customer can quote when following up.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "customerName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "Customer's full name."
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "maxLength": 255,
+              "description": "Customer email."
+            },
+            "mobile": {
+              "type": "string",
+              "minLength": 7,
+              "maxLength": 20,
+              "description": "Customer phone number."
+            },
+            "companyName": {
+              "type": "string",
+              "maxLength": 150,
+              "description": "Company name (optional)."
+            },
+            "productInterested": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Product or service of interest."
+            },
+            "city": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "City / location."
+            },
+            "message": {
+              "type": "string",
+              "maxLength": 2000,
+              "description": "Additional details about the requirement."
+            }
+          },
+          "required": [
+            "customerName",
+            "email",
+            "mobile"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
